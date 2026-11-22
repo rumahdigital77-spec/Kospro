@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { loadData, type Room, type Tenant, type Payment, type Transaction } from './store';
-import { refreshRoomsFromServer, type Settings } from './ks';
+import { refreshRoomsFromServer, refreshAllFromServer, type Settings } from './ks';
 
 export type Reading = { month: string; start: number; end: number; kwh: number; tariff: number; cost: number; paymentId?: string };
 export type KsData = {
@@ -32,10 +32,13 @@ export function useKs(poll = true): KsData {
     const evs = ['kostpro:data-saved', 'kostpro:data-scope-changed', 'kostpro:rooms-synced'];
     evs.forEach((e) => window.addEventListener(e, load));
     let iv = 0;
+    void refreshAllFromServer();
     const tick = () => { if (!document.hidden) void refreshRoomsFromServer(); };
+    const vis = () => { if (!document.hidden) void refreshAllFromServer(); };
+    document.addEventListener('visibilitychange', vis);
     if (poll) { tick(); iv = window.setInterval(tick, 5000); }
     document.addEventListener('visibilitychange', tick);
-    return () => { evs.forEach((e) => window.removeEventListener(e, load)); window.clearInterval(iv); document.removeEventListener('visibilitychange', tick); };
+    return () => { evs.forEach((e) => window.removeEventListener(e, load)); window.clearInterval(iv); document.removeEventListener('visibilitychange', tick); document.removeEventListener('visibilitychange', vis); };
   }, [poll]);
   return d;
 }

@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Plus, ReceiptText, Search, Zap } from 'lucide-react';
 import { useKs, type Reading } from '@/lib/useKs';
-import { saveData, type Payment, type Tenant, type Transaction } from '@/lib/store';
+import { loadData, saveData, type Payment, type Tenant, type Transaction } from '@/lib/store';
 import { createClient } from '@/lib/supabase-browser';
 import { Empty, PageHead, Sheet, Tabs } from '@/components/ks-ui';
 import {
-  dueDateOf, dueInMonth, greeting, monthKey, monthLabel, parseISO, parseMonthLabel, rp, shortDate, toast, todayISO, waLink, fmtRate, ID_MONTHS,
+  dueDateOf, dueInMonth, greeting, refreshAllFromServer, monthKey, monthLabel, parseISO, parseMonthLabel, rp, shortDate, toast, todayISO, waLink, fmtRate, ID_MONTHS,
 } from '@/lib/ks';
 
 type Tab = 'daftar' | 'tunggakan' | 'meter';
@@ -155,17 +155,17 @@ function PaySheet({ p, k, busy, setBusy, onClose }: { p: Payment; k: ReturnType<
       const { data, error } = await createClient().rpc('post_payment_transaction_v2', { p_payment_id: p.id, p_paid_at: paidAt, p_method: method });
       if (error) throw new Error(error.message || 'Gagal memposting pembayaran.');
       const receiptNo = String((data as any)?.receipt_no || p.receiptNo || '');
-      const paid: Payment = { ...p, status: 'paid', paidAt, method, receiptNo };
-      const nextPay = k.payments.map((x) => (x.id === p.id ? paid : x));
-      const hist = [...k.paymentHistory.filter((x) => x.id !== p.id), paid];
-      const tx: Transaction[] = k.transactions.some((x) => x.referenceId === p.id) ? k.transactions : [...k.transactions, {
-        id: 'TR-' + Date.now(), date: paidAt, description: `POSTING KAMAR — ${p.room} — ${p.tenant} — ${p.month} — ${method.toUpperCase()}`, category: 'Pendapatan Kamar',
-        amount: p.amount, type: 'income', referenceId: p.id, debitAccount: method === 'cash' ? 'Kas' : method === 'transfer' ? 'Bank' : 'QRIS', creditAccount: 'Pendapatan Sewa Kamar', accountingBasis: 'cash',
-      }];
-      const withGift = eligible && gift ? [...tx, { id: 'TR-AP-' + Date.now(), date: paidAt, description: `Apresiasi tepat waktu — ${p.tenant} (${p.room})`, category: 'Apresiasi Penghuni', amount: amt, type: 'expense' as const, referenceId: 'AP-' + p.id, accountingBasis: 'cash' as const }] : tx;
-      await saveData('payments', nextPay);
-      await saveData('paymentHistory', hist);
-      await saveData('transactions', withGift);
+      // Server sudah menandai lunas dan mencatat pendapatan. Tarik data terbaru lalu lengkapi arsip & apresiasi.
+      await refreshAllFromServer();
+      const freshPay = loadData<Payment[]>('payments', []);
+      const paid: Payment = freshPay.find((x) => x.id === p.id) || { ...p, status: 'paid', paidAt, method, receiptNo };
+      await saveData('paymentHistory', [...loadData<Payment[]>('paymentHistory', []).filter((x) => x.id !== p.id), paid]);
+      if (eligible && gift) {
+        const tx = loadData<Transaction[]>('transactions', []);
+        if (!tx.some((x) => x.referenceId === 'AP-' + p.id)) {
+          await saveData('transactions', [...tx, { id: 'TR-AP-' + Date.now(), date: paidAt, description: `Apresiasi tepat waktu — ${p.tenant} (${p.room})`, category: 'Apresiasi Penghuni', amount: amt, type: 'expense' as const, referenceId: 'AP-' + p.id, accountingBasis: 'cash' as const }]);
+        }
+      }
       toast('Pembayaran dicatat. Membuka kwitansi…');
       location.href = '/kostpro/kwitansi?id=' + encodeURIComponent(p.id);
     } catch (e) { toast(e instanceof Error ? e.message : 'Gagal menyimpan pembayaran.'); setBusy(false); }

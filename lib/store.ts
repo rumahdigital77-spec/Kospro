@@ -131,7 +131,12 @@ export function loadData<T>(name:string,fallback:T):T {
   }
 }
 
+export let pendingSaves = 0;
 export async function saveData<T>(name:string,v:T): Promise<void> {
+  pendingSaves++;
+  try { await saveDataImpl(name, v); } finally { pendingSaves--; }
+}
+async function saveDataImpl<T>(name:string,v:T): Promise<void> {
   if (typeof window === 'undefined') return;
 
   // Auth/hydration errors stay separate from localStorage failures.

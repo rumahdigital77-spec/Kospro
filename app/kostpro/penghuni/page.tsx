@@ -6,7 +6,7 @@ import { CalendarDays, LogIn, Search, Users } from 'lucide-react';
 import { useKs } from '@/lib/useKs';
 import { createClient } from '@/lib/supabase-browser';
 import { Empty, PageHead, Sheet, Tabs } from '@/components/ks-ui';
-import { dueDateOf, effectiveEnd, refreshRoomsFromServer, rp, shortDate, toast, todayISO, waLink, sortRooms } from '@/lib/ks';
+import { dueDateOf, effectiveEnd, refreshRoomsFromServer, refreshAllFromServer, rp, shortDate, toast, todayISO, waLink, sortRooms } from '@/lib/ks';
 
 type Tab = 'aktif' | 'booking' | 'riwayat';
 type Booking = { id: string; guest_name: string; guest_phone: string; check_in: string; duration_months: number; status: string; room_id: string; room_name?: string; room_price?: number };
@@ -45,7 +45,7 @@ export default function PenghuniPage() {
     const { error } = await createClient().rpc('update_kostin_booking_status', { p_booking_id: id, p_status: status });
     if (error) return toast(error.message || 'Gagal mengubah status booking.');
     toast(status === 'CONFIRMED' ? 'Booking disetujui. Siap check-in.' : 'Booking ditolak. Kamar kembali kosong.');
-    await load(); void refreshRoomsFromServer();
+    await load(); await refreshAllFromServer(); await refreshRoomsFromServer();
   };
 
   const status = (t: (typeof k.tenants)[number]) => {
@@ -126,7 +126,7 @@ export default function PenghuniPage() {
         )}
       </section>
 
-      <BookSheet open={bookOpen} onClose={() => setBookOpen(false)} rooms={sortRooms(k.rooms).filter((r) => r.status === 'available')} onDone={async () => { setBookOpen(false); setTab('booking'); await load(); void refreshRoomsFromServer(); }} />
+      <BookSheet open={bookOpen} onClose={() => setBookOpen(false)} rooms={sortRooms(k.rooms).filter((r) => r.status === 'available')} onDone={async () => { setBookOpen(false); setTab('booking'); await load(); await refreshAllFromServer(); await refreshRoomsFromServer(); }} />
     </div>
   );
 }

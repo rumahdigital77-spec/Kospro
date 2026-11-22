@@ -13,6 +13,7 @@ import { Sheet } from './ks-ui';
 import Art3D, { type ArtName } from './Art3D';
 import { createClient } from '@/lib/supabase-browser';
 import { loadData } from '@/lib/store';
+import { APP_VERSION_LABEL } from '@/lib/version';
 import { backupDue, backupNow, checkPin, hasPin, longDate, toast, THEMES, type Settings } from '@/lib/ks';
 
 type Phase = 'loading' | 'onboarding' | 'app';
@@ -148,6 +149,7 @@ export default function KostproShell({ children }: { children: React.ReactNode }
             onKeyDown={(e) => { if (e.key === 'Enter') void unlock(); }} placeholder="PIN" />
           {pinErr && <p className="ks-err">PIN salah.</p>}
           <button className="ks-btn" onClick={() => void unlock()}>Buka</button>
+          <p className="ks-ver">{APP_VERSION_LABEL}</p>
         </div>
       </div>
     );

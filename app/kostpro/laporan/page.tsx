@@ -1,5 +1,5 @@
 'use client';
-import{useEffect,useState}from'react';import{defaultPayments,defaultRooms,defaultTransactions,loadData,money,Payment,Room,Tenant,Transaction}from'@/lib/store';
+import{useEffect,useState}from'react';import SyncAudit from'@/components/SyncAudit';import{defaultPayments,defaultRooms,defaultTransactions,loadData,money,Payment,Room,Tenant,Transaction}from'@/lib/store';
 
 export default function Laporan(){
  const[r,setR]=useState<Room[]>(defaultRooms),[t,setT]=useState<Transaction[]>(defaultTransactions),[guests,setGuests]=useState<Tenant[]>([]),[payments,setPayments]=useState<Payment[]>([]),[tab,setTab]=useState<'guest'|'payment'|'summary'>('guest'),[msg,setMsg]=useState('');
@@ -17,5 +17,6 @@ export default function Laporan(){
  {tab==='guest'&&<div className="card" style={{marginTop:18}}><div className="section-title">History Guest / C.O</div><div className="table-wrap"><table className="table"><thead><tr><th>Nama</th><th>Kamar</th><th>Telepon</th><th>Masuk</th><th>C.O</th><th>Sewa</th><th>Status</th></tr></thead><tbody>{guests.map(x=><tr key={x.id}><td><b>{x.name}</b></td><td>{x.room}</td><td>{x.phone||'-'}</td><td>{x.startDate}</td><td>{x.endDate||'-'}</td><td>{money(x.rent)}</td><td>{x.checkoutReason==='expired'?'Masa aktif berakhir':x.checkoutReason==='transferred'?'Pindah kamar':'C.O manual'}</td></tr>)}{!guests.length&&<tr><td colSpan={7}>Belum ada history guest C.O.</td></tr>}</tbody></table></div></div>}
  {tab==='payment'&&<div className="card" style={{marginTop:18}}><div className="section-title">History Payment Setelah C.O</div><div className="sub" style={{marginBottom:14}}>Pembayaran yang sudah lunas dipindahkan otomatis ke sini ketika guest C.O. Tagihan yang belum lunas tetap berada di Tagihan.</div><div className="table-wrap"><table className="table"><thead><tr><th>Guest</th><th>Kamar</th><th>Periode</th><th>Tanggal Lunas</th><th>Metode</th><th>Nominal</th><th>Kwitansi</th></tr></thead><tbody>{coPayments.map(x=><tr key={x.id}><td><b>{x.tenant}</b></td><td>{x.room}</td><td>{x.month}</td><td>{x.paidAt||'-'}</td><td>{x.method||'-'}</td><td>{money(x.amount)}</td><td>{x.receiptNo||'-'}</td></tr>)}{!coPayments.length&&<tr><td colSpan={7}>Belum ada payment history dari guest C.O.</td></tr>}</tbody></table></div></div>}
  {tab==='summary'&&<div className="card" style={{marginTop:18}}><div className="section-title">Ringkasan Operasional</div><div className="sub">Okupansi: {r.length?Math.round(occ/r.length*100):0}% · Pendapatan tercatat: {money(inc)} · Piutang aktif: {money(due)} · Kamar maintenance: {r.filter(x=>x.status==='maintenance').length}</div></div>}
+ {tab==='summary'&&<SyncAudit/>}
  </div>;
 }

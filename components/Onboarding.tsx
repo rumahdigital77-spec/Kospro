@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import { Building2, PenLine, Gift, Upload, Shield, Hand, Check } from 'lucide-react';
 import { createClient } from '@/lib/supabase-browser';
+import { APP_VERSION_LABEL } from '@/lib/version';
 import {
   ELEC_MODES, ELEC_TARIFFS, NUMBERING, PROPERTY_TYPES, TARGETS, THEMES, fmtRate, genRoomIds, parseBackup, setPin,
 } from '@/lib/ks';
@@ -207,6 +208,7 @@ export default function Onboarding({ existingUser, onDone }: { existingUser: { i
             <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => { pickFile(e.target.files?.[0]); e.target.value = ''; }} />
             {!existingUser && <button className="ks-link" onClick={() => { setErr(''); setView('login'); }}>Sudah punya akun? Masuk</button>}
             {err && <p className="ks-err">{err}</p>}
+            <p className="ks-ver">{APP_VERSION_LABEL}</p>
           </>
         )}
 

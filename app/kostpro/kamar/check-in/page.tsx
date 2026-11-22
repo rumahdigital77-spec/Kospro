@@ -76,7 +76,7 @@ export default function CheckInTamu() {
       const nextTenants = [...tenants, tenant];
       const nextRooms = rooms.map(x =>
         x.id === selected.id
-          ? { ...x, tenant: tenant.name, price: roomPrice, status: 'occupied' as const }
+          ? { ...x, tenant: tenant.name, price: roomPrice, status: 'occupied' as const, since: startDate }
           : x
       );
 
@@ -92,6 +92,8 @@ export default function CheckInTamu() {
         month,
         amount: roomPrice,
         status: 'unpaid',
+        dueDate: startDate,
+        kind: 'sewa',
       };
       const nextPayments = [...payments, payment];
 

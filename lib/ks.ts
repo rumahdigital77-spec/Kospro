@@ -1,5 +1,6 @@
 // Helper UI KostPro (gaya KosKu): tema, penomoran kamar, format, cadangan data, sinkron kamar.
-import { loadData, saveData, type Room, type Tenant, type Payment } from './store';
+import { loadData, saveData, pendingSaves, type Room, type Tenant, type Payment } from './store';
+import { createClient } from './supabase-browser';
 import { addMonthsISO, dueInMonth, parseISO, parseMonthLabel, todayISO, daysBetween } from './dates';
 export * from './dates';
 
@@ -116,6 +117,26 @@ export async function refreshRoomsFromServer(): Promise<boolean> {
       localStorage.setItem('kostpro_rooms', next);
       window.dispatchEvent(new Event('kostpro:rooms-synced'));
     }
+    return true;
+  } catch { return false; }
+}
+
+// Menarik seluruh data dari server (sumber utama). Dipakai setelah aksi yang berjalan di server
+// (C.I. booking, pembayaran) agar data lokal tidak basi dan tidak menimpa data baru saat disimpan.
+export async function refreshAllFromServer(): Promise<boolean> {
+  if (typeof window === 'undefined' || pendingSaves > 0) return false;
+  try {
+    const { data, error } = await createClient().rpc('get_property_app_state');
+    if (error || !data || typeof data !== 'object') return false;
+    if (pendingSaves > 0) return false;
+    let changed = false;
+    for (const k of ['rooms', 'tenants', 'payments', 'transactions', 'paymentHistory', 'tenantHistory', 'meters', 'settings']) {
+      const v = (data as Record<string, unknown>)['kostpro_' + k];
+      if (v === undefined || v === null) continue;
+      const next = JSON.stringify(v);
+      if (localStorage.getItem('kostpro_' + k) !== next) { localStorage.setItem('kostpro_' + k, next); changed = true; }
+    }
+    if (changed) window.dispatchEvent(new Event('kostpro:rooms-synced'));
     return true;
   } catch { return false; }
 }

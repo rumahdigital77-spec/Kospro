@@ -7,6 +7,7 @@ import { useKs } from '@/lib/useKs';
 import { saveData } from '@/lib/store';
 import { createClient } from '@/lib/supabase-browser';
 import { PageHead } from '@/components/ks-ui';
+import { APP_VERSION_LABEL } from '@/lib/version';
 import { ELEC_TARIFFS, THEMES, applyBackup, backupNow, fmtRate, hasPin, parseBackup, rp, setPin, toast, type Settings } from '@/lib/ks';
 
 export default function Pengaturan() {
@@ -193,7 +194,7 @@ export default function Pengaturan() {
         <button className="ks-btn ghost" onClick={() => void logout()}>Keluar</button>
       </section>
       <div className="ks-brand sm"><img src="/brand/kostpro-logo.png" alt="KostPro" /></div>
-      <p className="ks-ver">Tampilan KostPro v2.2 · gaya KosKu</p>
+      <p className="ks-ver">{APP_VERSION_LABEL}</p>
     </div>
   );
 }

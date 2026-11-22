@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, CalendarDays, CheckCircle2, Home, Loader2, Phone, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-browser';
+import { refreshAllFromServer } from '@/lib/ks';
 
 type Booking = {
   id: string; guest_name: string; guest_phone: string; check_in: string;
@@ -49,7 +50,8 @@ export default function BookingCheckInPage() {
       p_check_in: checkIn, p_duration_months: duration,
     });
     if (error) { setMsg(error.message || 'Gagal menyimpan C.I.'); setSaving(false); return; }
-    setMsg('C.I. berhasil disimpan. Kamar sekarang OCCUPIED dan booking COMPLETED.');
+    await refreshAllFromServer();
+    setMsg('C.I. berhasil disimpan. Kamar sekarang OCCUPIED, penghuni aktif, dan tagihan pertama dibuat.');
     setSaving(false);
     setTimeout(() => router.push('/kostpro/booking'), 900);
   }

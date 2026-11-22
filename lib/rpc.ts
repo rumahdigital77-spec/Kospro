@@ -2,7 +2,7 @@ import { q, getState, setState } from './db';
 import { propertyOf, destroySession, type User } from './auth';
 import { normalizeRooms } from './rooms';
 import { provisionProperty } from './provision';
-import { todayISO } from './dates';
+import { todayISO, addMonthsISO, monthLabel, parseISO } from './dates';
 
 type Ctx = { user: User | null; a: Record<string, any> };
 
@@ -135,10 +135,22 @@ export const handlers: Record<string, (c: Ctx) => Promise<unknown>> = {
     );
     if (!r.length) throw new Error('Booking belum berstatus CONFIRMED.');
     await setRoomStatus(p.id, r[0].room_id, null, 'occupied', String(a.p_guest_name).trim());
-    const tenants = Array.isArray(await getState(p.id, 'kostpro_tenants')) ? await getState(p.id, 'kostpro_tenants') : [];
+    // C.I. dari booking = penghuni aktif + tagihan sewa pertama (agar masuk Tagihan, Piutang, dan Laporan).
+    const guestName = String(a.p_guest_name).trim();
+    const checkIn = String(a.p_check_in);
+    const stamp = Date.now();
+    const tenantId = 'TEN-' + stamp;
+    const tList = await getState(p.id, 'kostpro_tenants');
+    const tenants: any[] = Array.isArray(tList) ? tList : [];
     await setState(p.id, 'kostpro_tenants', [...tenants, {
-      id: 'TN-' + Date.now(), name: String(a.p_guest_name).trim(), room: r[0].room_id, phone: String(a.p_guest_phone).trim(),
-      startDate: String(a.p_check_in), rent: r[0].price, status: 'active',
+      id: tenantId, name: guestName, room: r[0].room_id, phone: String(a.p_guest_phone).trim(),
+      startDate: checkIn, endDate: addMonthsISO(checkIn, dur), rent: r[0].price, status: 'active', source: 'kostin-booking',
+    }]);
+    const pList = await getState(p.id, 'kostpro_payments');
+    const payments: any[] = Array.isArray(pList) ? pList : [];
+    await setState(p.id, 'kostpro_payments', [...payments, {
+      id: 'P-' + stamp, tenantId, tenant: guestName, room: r[0].room_id, month: monthLabel(parseISO(checkIn)),
+      amount: r[0].price, status: 'unpaid', dueDate: checkIn, kind: 'sewa',
     }]);
     return true;
   },
@@ -151,7 +163,19 @@ export const handlers: Record<string, (c: Ctx) => Promise<unknown>> = {
     if (!cur) throw new Error('Tagihan tidak ditemukan.');
     if (cur.status === 'paid') throw new Error('Tagihan ini sudah lunas.');
     const receipt = cur.receiptNo || 'KW-' + String(a.p_paid_at || '').replaceAll('-', '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-    await setState(p.id, 'kostpro_payments', payments.map((x) => x.id === cur.id ? { ...x, status: 'paid', paidAt: a.p_paid_at, method: a.p_method, receiptNo: receipt } : x));
+    const method = ['cash', 'transfer', 'qris'].includes(String(a.p_method)) ? String(a.p_method) : 'transfer';
+    const paidAt = /^\d{4}-\d{2}-\d{2}$/.test(String(a.p_paid_at)) ? String(a.p_paid_at) : todayISO();
+    await setState(p.id, 'kostpro_payments', payments.map((x) => x.id === cur.id ? { ...x, status: 'paid', paidAt, method, receiptNo: receipt } : x));
+    // Pendapatan dicatat di server (satu kali per tagihan) sehingga Keuangan & Laporan selalu sinkron.
+    const trList = await getState(p.id, 'kostpro_transactions');
+    const txs: any[] = Array.isArray(trList) ? trList : [];
+    if (!txs.some((x) => x?.referenceId === cur.id)) {
+      await setState(p.id, 'kostpro_transactions', [...txs, {
+        id: 'TR-' + Date.now(), date: paidAt, description: `POSTING KAMAR — ${cur.room} — ${cur.tenant} — ${cur.note || cur.month} — ${method.toUpperCase()}`,
+        category: cur.kind === 'listrik' ? 'Pendapatan Listrik' : 'Pendapatan Kamar', amount: Number(cur.amount) || 0, type: 'income', referenceId: cur.id,
+        debitAccount: method === 'cash' ? 'Kas' : method === 'transfer' ? 'Bank' : 'QRIS', creditAccount: 'Pendapatan Sewa Kamar', accountingBasis: 'cash',
+      }]);
+    }
     return { receipt_no: receipt };
   },
 
