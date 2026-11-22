@@ -188,7 +188,7 @@ export default function Onboarding({ existingUser, onDone }: { existingUser: { i
 
         {view === 'welcome' && (
           <>
-            <div className="ks-onb-logo"><Building2 size={44} /></div>
+            <div className="ks-brand"><img src="/brand/kostpro-logo.png" alt="KostPro — Managed Smart Your Property" /></div>
             <h1>Selamat datang di KostPro</h1>
             <p className="ks-lead">Kelola kamar, penghuni, tagihan, kwitansi, dan laporan kos/kontrakan Anda — langsung dari HP atau laptop.</p>
             <div className="ks-note blue"><Shield size={22} /><span>Data tersimpan aman di akun Anda dan tersinkron ke KostIn. Untuk berjaga-jaga, gunakan fitur <b>Cadangkan data</b> secara rutin.</span></div>
@@ -212,6 +212,7 @@ export default function Onboarding({ existingUser, onDone }: { existingUser: { i
 
         {view === 'login' && (
           <>
+            <div className="ks-brand sm"><img src="/brand/kostpro-logo.png" alt="KostPro" /></div>
             <h2>Masuk</h2>
             <p className="ks-lead">Gunakan email dan password akun KostPro Anda.</p>
             <label className="ks-f"><b>Email</b><input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="owner@email.com" /></label>

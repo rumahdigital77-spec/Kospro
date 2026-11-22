@@ -51,7 +51,28 @@ export default function Pengaturan() {
     if (pin !== pin2) return toast('Ulangi PIN tidak sama.');
     await setPin(pin); setPinOn(true); setPinV(''); setPin2(''); sessionStorage.setItem('kostpro_unlocked', '1'); toast('PIN aktif di perangkat ini.');
   };
-  const image = (key: 'logo' | 'signature') => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const shrink = (file: File, max: number) => new Promise<string>((resolve, reject) => {
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const r = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+      c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); resolve(c.toDataURL('image/png'));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Gambar tidak bisa dibaca.')); };
+    img.src = url;
+  });
+  // Logo pemilik langsung disimpan dan otomatis tampil di header halaman utama.
+  const setLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]; e.target.value = '';
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) return toast('File maksimal 4 MB.');
+    try {
+      const logo = await shrink(file, 256);
+      set('logo', logo); await saveData('settings', { ...k.settings, logo }); toast('Logo diperbarui dan tampil di header.');
+    } catch (err) { toast(err instanceof Error ? err.message : 'Gagal mengganti logo.'); }
+  };
+  const removeLogo = async () => { set('logo', undefined); await saveData('settings', { ...k.settings, logo: undefined }); toast('Logo dikembalikan ke bawaan.'); };
+  const image = (key: 'signature') => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 1024 * 1024) return toast('File maksimal 1 MB.');
@@ -94,7 +115,7 @@ export default function Pengaturan() {
         </div>
         <label className="ks-f"><b>Rekening / cara bayar</b><input value={f.bank || ''} onChange={(e) => set('bank', e.target.value)} /></label>
         <div className="ks-2">
-          <label className="ks-f"><b>Logo</b><input type="file" accept="image/png,image/jpeg,image/webp" onChange={image('logo')} />{f.logo && <img src={f.logo} alt="Logo" className="ks-thumb" />}</label>
+          <div className="ks-f"><b>Logo pemilik (tampil di header)</b><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => void setLogo(e)} />{f.logo && <><img src={f.logo} alt="Logo" className="ks-thumb" /><button type="button" className="ks-link" onClick={() => void removeLogo()}>Hapus logo</button></>}</div>
           <label className="ks-f"><b>Tanda tangan</b><input type="file" accept="image/png,image/jpeg,image/webp" onChange={image('signature')} />{f.signature && <img src={f.signature} alt="Tanda tangan" className="ks-thumb" />}</label>
         </div>
         <div className="ks-2">
@@ -171,7 +192,8 @@ export default function Pengaturan() {
         {account?.is_demo && <button className="ks-btn danger" onClick={() => void wipeDemo()}>Hapus data contoh &amp; mulai usaha saya</button>}
         <button className="ks-btn ghost" onClick={() => void logout()}>Keluar</button>
       </section>
-      <p className="ks-ver">Tampilan KostPro v2.1 · gaya KosKu</p>
+      <div className="ks-brand sm"><img src="/brand/kostpro-logo.png" alt="KostPro" /></div>
+      <p className="ks-ver">Tampilan KostPro v2.2 · gaya KosKu</p>
     </div>
   );
 }

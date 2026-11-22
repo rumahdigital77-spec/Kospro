@@ -141,7 +141,8 @@ export default function KostproShell({ children }: { children: React.ReactNode }
     return (
       <div className="kostpro-root ks ks-lock" data-theme={theme.id} data-mode={settings.mode || 'auto'}>
         <div className="ks-lock-card">
-          <Lock size={30} />
+          <div className="ks-brand sm"><img src="/brand/kostpro-logo.png" alt="KostPro" /></div>
+          <Lock size={26} />
           <h2>Masukkan PIN</h2>
           <input type="password" inputMode="numeric" autoFocus maxLength={6} value={pin} onChange={(e) => { setPin(e.target.value.replace(/\D/g, '')); setPinErr(false); }}
             onKeyDown={(e) => { if (e.key === 'Enter') void unlock(); }} placeholder="PIN" />
@@ -157,7 +158,10 @@ export default function KostproShell({ children }: { children: React.ReactNode }
       <AccountDataSync />
       <header className="ks-head">
         <div className="ks-head-in">
-          <Link href="/kostpro" className="ks-logo" aria-label="Beranda"><Building2 size={26} /></Link>
+          <Link href="/kostpro" className={'ks-logo' + (settings.logo ? ' own' : '')} aria-label="Beranda">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={settings.logo || '/brand/kostpro-icon.png'} alt="Logo" />
+          </Link>
           <div className="ks-head-t">
             <b>{isHome ? (propName || 'KostPro') : pageTitle}</b>
             <span>{isHome ? longDate(new Date()) : (propName || 'KostPro')}</span>
